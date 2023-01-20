@@ -1,7 +1,22 @@
 // @ts-nocheck
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { gql, useMutation } from "@apollo/client";
+import { Link } from "react-router-dom";
+
+import LoadingSpinner from "../ui/LoadingSpinner";
+
+const REGISTER_USER = gql`
+  mutation register($username: String!, $email: String!, $password: String!) {
+    register(username: $username, email: $email, password: $password) {
+      username
+      email
+      createdAt
+    }
+  }
+`;
 
 const schema = yup
   .object({
@@ -32,15 +47,32 @@ export default function RegisterForm() {
     resolver: yupResolver(schema),
   });
 
+  const [error, setError] = useState("");
+
+  const [registerUser, { loading }] = useMutation(REGISTER_USER, {
+    // update: (_, __) => props.history.push("/login"),
+    onError: (err) => setError(err.message),
+  });
+
   const onSubmit = (data) => {
-    console.log(data);
+    setError("");
     // Make API call to register user here
+    registerUser({
+      variables: {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+      },
+    });
+    // reset();
   };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="w-full rounded-lg bg-white p-6 shadow-2xl md:w-1/2"
+      className={`w-full rounded-lg bg-white p-6 shadow-2xl md:w-1/2 ${
+        error ? "border-red-500" : ""
+      }`}
     >
       <h2 className="mb-4 text-center text-lg font-medium">Register</h2>
       <div className="mb-4">
@@ -126,13 +158,26 @@ export default function RegisterForm() {
           </p>
         )}
       </div>
+      {loading ? (
+        <LoadingSpinner />
+      ) : (
+        <div className="mb-4 text-center">
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-500 py-2 px-4 text-white hover:bg-blue-600 sm:w-full md:w-1/2"
+          >
+            Register
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className="text-center text-xs italic text-red-500">{error}</p>
+      )}
       <div className="mb-4 text-center">
-        <button
-          type="submit"
-          className="rounded-lg bg-blue-500 py-2 px-4 text-white hover:bg-blue-600 sm:w-full md:w-1/2"
-        >
-          Register
-        </button>
+        Already Have an Acount?{" "}
+        <Link to={`/login`} className="text-blue-800">
+          Login
+        </Link>
       </div>
     </form>
   );
