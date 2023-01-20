@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { gql, useMutation } from "@apollo/client";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import LoadingSpinner from "../ui/LoadingSpinner";
 
@@ -38,6 +38,8 @@ const schema = yup
   .required("Invalid Submission");
 
 export default function RegisterForm() {
+  const navigate = useNavigate();
+
   const {
     register,
     reset,
@@ -50,13 +52,15 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
 
   const [registerUser, { loading }] = useMutation(REGISTER_USER, {
-    // update: (_, __) => props.history.push("/login"),
+    update: (_, __) => {
+      reset();
+      navigate("/login");
+    },
     onError: (err) => setError(err.message),
   });
 
   const onSubmit = (data) => {
     setError("");
-    // Make API call to register user here
     registerUser({
       variables: {
         username: data.username,
@@ -64,7 +68,6 @@ export default function RegisterForm() {
         password: data.password,
       },
     });
-    // reset();
   };
 
   return (
@@ -84,7 +87,6 @@ export default function RegisterForm() {
         </label>
         <input
           type="text"
-          name="username"
           id="username"
           className={`w-full rounded-lg border border-gray-400 p-2 ${
             errors.username?.message ? "border-red-500" : ""
@@ -103,7 +105,6 @@ export default function RegisterForm() {
         </label>
         <input
           type="email"
-          name="email"
           id="email"
           className={`w-full rounded-lg border border-gray-400 p-2 ${
             errors.email?.message ? "border-red-500" : ""
@@ -123,7 +124,6 @@ export default function RegisterForm() {
         </label>
         <input
           type="password"
-          name="password"
           id="password"
           className={`w-full rounded-lg border border-gray-400 p-2 ${
             errors.password?.message ? "border-red-500" : ""
@@ -145,7 +145,6 @@ export default function RegisterForm() {
         </label>
         <input
           type="password"
-          name="confirm-password"
           id="confirm-password"
           className={`w-full rounded-lg border border-gray-400 p-2 ${
             errors.confirmPassword?.message ? "border-red-500" : ""
