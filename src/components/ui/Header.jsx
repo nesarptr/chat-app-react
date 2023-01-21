@@ -1,20 +1,19 @@
-import React, { useState } from "react";
+import React, { useContext } from "react";
 import { Link, Outlet } from "react-router-dom";
 
+import { AuthContext } from "../../context/AuthProvider";
+
 function Header() {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    localStorage.getItem("token") !== null
-  );
+  const { isAuthenticated, logout } = useContext(AuthContext);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
+    logout();
   };
 
   return (
     <>
       <header className="flex items-center justify-between bg-gray-900 py-3 px-6 text-white">
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <Link to="/" className="text-lg font-medium">
             Home
           </Link>
@@ -28,7 +27,7 @@ function Header() {
             </Link>
           </nav>
         )}
-        {isLoggedIn && (
+        {isAuthenticated && (
           <button onClick={handleLogout} className="text-lg font-medium">
             Logout
           </button>

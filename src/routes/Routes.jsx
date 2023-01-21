@@ -6,24 +6,38 @@ import Error404 from "../components/ui/Error404";
 import App from "../Pages/App";
 import Register from "../Pages/auth/Register";
 import Login from "../Pages/auth/Login";
+import { PrivateRoute, NonAuthRoute } from "./ProtectedRoutes";
 
 const routes = createBrowserRouter([
   {
     element: <Header />,
+    errorElement: <Error404 />,
     children: [
       {
         path: "/",
-        element: <App />,
+        element: (
+          <PrivateRoute>
+            <App />
+          </PrivateRoute>
+        ),
         errorElement: <Error404 />,
       },
       {
         path: "/register",
-        element: <Register />,
+        element: (
+          <NonAuthRoute>
+            <Register />
+          </NonAuthRoute>
+        ),
         errorElement: <Error404 />,
       },
       {
         path: "/login",
-        element: <Login />,
+        element: (
+          <NonAuthRoute>
+            <Login />
+          </NonAuthRoute>
+        ),
         errorElement: <Error404 />,
       },
     ],

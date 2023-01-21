@@ -1,11 +1,12 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { gql, useLazyQuery } from "@apollo/client";
 import { Link, useNavigate } from "react-router-dom";
 
+import { AuthContext } from "../../context/AuthProvider";
 import LoadingSpinner from "../ui/LoadingSpinner";
 
 const LOGIN_USER = gql`
@@ -31,6 +32,7 @@ const schema = yup
 
 export default function LoginForm() {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const {
     register,
@@ -47,7 +49,7 @@ export default function LoginForm() {
     onError: (err) => setError(err.message),
     onCompleted(data) {
       reset();
-      localStorage.setItem("token", data.login.token);
+      login(data.login);
       navigate("/");
     },
   });
