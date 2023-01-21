@@ -50,7 +50,6 @@ export default function LoginForm() {
     onCompleted(data) {
       reset();
       login(data.login);
-      navigate("/");
     },
   });
 
