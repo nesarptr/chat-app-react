@@ -1,9 +1,23 @@
-import React, { useState, useEffect, useContext } from "react";
-import { gql, useQuery, useLazyQuery } from "@apollo/client";
-// @ts-ignore
-import chatImage from "../assets/chat.png";
+import React, { useState, useContext } from "react";
+import { gql, useQuery, useLazyQuery, useMutation } from "@apollo/client";
 
+import UserList from "./UserList";
+import MessageList from "./MessageList";
+import MessageForm from "./MessageForm";
 import { AuthContext } from "../../context/AuthProvider";
+import LoadingSpinner from "../ui/LoadingSpinner";
+
+const SEND_MESSAGE = gql`
+  mutation sendMessage($to: String!, $content: String!) {
+    sendMessage(to: $to, content: $content) {
+      uuid
+      from
+      to
+      content
+      createdAt
+    }
+  }
+`;
 
 const GET_MESSAGES = gql`
   query getMessages($from: String!) {
@@ -40,19 +54,20 @@ function Chat() {
   const [messages, setMessages] = useState([]);
   const { user } = useContext(AuthContext);
   // @ts-ignore
-  const { loading, data, error } = useQuery(GET_USERS);
+  const { loading } = useQuery(GET_USERS, {
+    onCompleted: (data) => {
+      setUsers(data.getUsers);
+    },
+  });
   // @ts-ignore
-  const [getMessages, { loading: messagesLoading, data: messagesData }] =
-    useLazyQuery(GET_MESSAGES);
-
-  useEffect(() => {
-    data?.getUsers && setUsers(data?.getUsers);
-    console.log(data?.getUsers);
-  }, [data?.getUsers]);
-
-  useEffect(() => {
-    messagesData?.getMessages && setMessages(messagesData.getMessages);
-  }, [selectedUser]);
+  const [getMessages, { loading: messagesLoading }] = useLazyQuery(
+    GET_MESSAGES,
+    {
+      onCompleted: (data) => {
+        setMessages(data.getMessages);
+      },
+    }
+  );
 
   const handleUserClick = (user) => {
     getMessages({
@@ -63,99 +78,69 @@ function Chat() {
     setSelectedUser(user);
   };
 
+  const [sendMessage] = useMutation(SEND_MESSAGE, {
+    onCompleted: (data) => {
+      // @ts-ignore
+      setMessages((msgs) => [data.sendMessage, ...msgs]);
+      // @ts-ignore
+      setUsers((users) => {
+        // @ts-ignore
+        const ind = users.findIndex(
+          // @ts-ignore
+          (user) => user.username === data.sendMessage.to
+        );
+        const updatedUser = {
+          // @ts-ignore
+          ...users[ind],
+          latestMessage: data.sendMessage,
+        };
+        const updatedUsers = [...users];
+        updatedUsers[ind] = updatedUser;
+        return updatedUsers;
+      });
+    },
+    onError: (err) => console.error(err),
+  });
+
   return (
-    <>
-      <div className="flex h-screen">
-        <ul className="h-full w-1/4 overflow-y-auto">
-          {users.map((user) => (
-            <li
-              className="flex flex-col items-center border-b border-gray-700 p-4 lg:flex-row"
-              key={
-                // @ts-ignore
-                user.username
-              }
-              onClick={() => handleUserClick(user)}
-            >
-              <img
-                className="w-16 rounded-full"
-                src={chatImage}
-                alt={
-                  // @ts-ignore
-                  user.username
-                }
-              />
-              <div className="flex-1">
-                <p className="font-medium">
-                  {
-                    // @ts-ignore
-                    user.username
-                  }
-                </p>
-                <p className="text-gray-500">
-                  {
-                    // @ts-ignore
-                    user?.latestMessage?.content ||
-                      "No Message Found from this user"
-                  }
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <div className="flex h-full w-3/4 flex-col justify-between">
-          {selectedUser && (
-            <>
-              <div className="bg-gray-800 px-4 py-2">
-                <p className="font-medium text-white">
-                  {
-                    // @ts-ignore
-                    selectedUser.username
-                  }
-                </p>
-              </div>
-              <div>
-                <ul className="overflow-y-auto p-4">
-                  {messages.map((message) => (
-                    <li
-                      className="my-2"
-                      key={
-                        // @ts-ignore
-                        message.uuid
-                      }
-                    >
-                      <div>
-                        {
-                          // @ts-ignore
-                          message.from === user.username
-                            ? "You"
-                            : // @ts-ignore
-                              selectedUser.username
-                        }
-                        :{" "}
-                        {
-                          // @ts-ignore
-                          message.content
-                        }
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <form className="flex w-full p-2 ">
-                  <input
-                    className="mr-2 flex-1 border border-gray-500 p-2"
-                    placeholder="Type your message here"
-                  />
-                  <button type="submit" className="p-1">
-                    ▶
-                  </button>
-                </form>
-              </div>
-            </>
-          )}
+    <div className="flex h-screen pb-12">
+      {loading ? (
+        <div className="self-start pl-8 pt-8">
+          <LoadingSpinner />
         </div>
+      ) : (
+        <UserList onTap={handleUserClick} users={users} />
+      )}
+      <div className="flex h-full w-3/5 flex-col justify-between">
+        {selectedUser && (
+          <>
+            <div className="bg-gray-800 px-4 py-2">
+              <p className="font-medium text-white">
+                {
+                  // @ts-ignore
+                  selectedUser.username
+                }
+              </p>
+            </div>
+            {messagesLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <div>
+                <MessageList
+                  messages={messages}
+                  user={user}
+                  selectedUser={selectedUser}
+                />
+                <MessageForm
+                  onMessageSend={sendMessage}
+                  selectedUser={selectedUser}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
-      <div className="mb-4 w-screen"></div>
-    </>
+    </div>
   );
 }
 

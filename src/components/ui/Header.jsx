@@ -8,6 +8,7 @@ function Header() {
 
   const handleLogout = () => {
     logout();
+    window.location.href = "/login";
   };
 
   return (
