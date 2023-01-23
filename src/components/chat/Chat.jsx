@@ -50,21 +50,40 @@ const GET_USERS = gql`
 
 function Chat() {
   const [selectedUser, setSelectedUser] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState({});
   const [messages, setMessages] = useState([]);
   const { user } = useContext(AuthContext);
   // @ts-ignore
   const { loading } = useQuery(GET_USERS, {
     onCompleted: (data) => {
-      setUsers(data.getUsers);
+      setUsers(
+        data.getUsers.reduce((acc, cur) => {
+          acc[cur.username] = { ...cur };
+          return acc;
+        }, {})
+      );
     },
   });
   // @ts-ignore
   const [getMessages, { loading: messagesLoading }] = useLazyQuery(
     GET_MESSAGES,
     {
+      fetchPolicy: "no-cache",
       onCompleted: (data) => {
         setMessages(data.getMessages);
+        const newMessages = data.getMessages;
+        setUsers((users) => {
+          const newUsers = { ...users };
+          for (let i = newMessages.length - 1; i >= 0; i--) {
+            if (newUsers[newMessages[i].to]) {
+              newUsers[newMessages[i].to].latestMessage = newMessages[i];
+            }
+            if (newUsers[newMessages[i].from]) {
+              newUsers[newMessages[i].from].latestMessage = newMessages[i];
+            }
+          }
+          return newUsers;
+        });
       },
     }
   );
@@ -81,29 +100,17 @@ function Chat() {
   const [sendMessage] = useMutation(SEND_MESSAGE, {
     onCompleted: (data) => {
       // @ts-ignore
-      setMessages((msgs) => [data.sendMessage, ...msgs]);
-      // @ts-ignore
-      setUsers((users) => {
-        // @ts-ignore
-        const ind = users.findIndex(
-          // @ts-ignore
-          (user) => user.username === data.sendMessage.to
-        );
-        const updatedUser = {
-          // @ts-ignore
-          ...users[ind],
-          latestMessage: data.sendMessage,
-        };
-        const updatedUsers = [...users];
-        updatedUsers[ind] = updatedUser;
-        return updatedUsers;
+      getMessages({
+        variables: {
+          from: data.sendMessage.to,
+        },
       });
     },
     onError: (err) => console.error(err),
   });
 
   return (
-    <div className="flex h-screen pb-12">
+    <div className="flex h-full">
       {loading ? (
         <div className="self-start pl-8 pt-8">
           <LoadingSpinner />
