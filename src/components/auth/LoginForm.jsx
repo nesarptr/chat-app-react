@@ -31,7 +31,6 @@ const schema = yup
   .required("Invalid Submission");
 
 export default function LoginForm() {
-  const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
   const {
@@ -50,6 +49,7 @@ export default function LoginForm() {
     onCompleted(data) {
       reset();
       login(data.login);
+      window.location.href = window.origin;
     },
   });
 
